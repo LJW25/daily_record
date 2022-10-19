@@ -10,12 +10,13 @@ import {
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FlatList } from 'react-native-gesture-handler';
-
+import {useIsFocused} from '@react-navigation/native'
 
 
 
 
 const Main = ({navigation}) => {
+    const isFocused = useIsFocused();
     const isDarkMode = useColorScheme() === 'dark';
     const backgroundStyle = {
         backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
@@ -74,10 +75,10 @@ const Main = ({navigation}) => {
             setCurMemos(_curMemo);
         }
         getMemo();
-    }, [navigation]);
+    }, [isFocused]);
 
     const renderItem = ({item}) => {
-        console.log(item.id);
+        //console.log(item.id);
         
         return (
             <Section memo={item}>

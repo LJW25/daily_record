@@ -13,12 +13,12 @@ const Write = ({navigation}) => {
     const addInMemoList = async(id) => {
         try{
             let memoList = JSON.parse(await AsyncStorage.getItem('MemoList'));
+            console.log(JSON.stringify(memoList));
 
-            if(memoList['default'] == null){
+            if(memoList == null){
                 memoList = {'default': [id]};
             }
             else {
-                
                 memoList['default'].push(id);
                 alert('pushed!');
             }
@@ -39,7 +39,8 @@ const Write = ({navigation}) => {
             await AsyncStorage.setItem(id, JSON.stringify(memo));
             addInMemoList(id);
             console.log(`Memo:${id} succefully saved!`);
-
+            
+            navigation.navigate('main')
         }
         catch(error){
             console.log(error);
@@ -94,7 +95,6 @@ const Write = ({navigation}) => {
             title="Save" 
             onPress={() => {
                 addMemo();
-                navigation.navigate('main')
             }}
             style={styles.button}
             />

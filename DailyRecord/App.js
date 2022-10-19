@@ -18,7 +18,9 @@ const App = () => {
         <Stack.Screen
           name="main"
           component={Main}
-          options={{ title: 'Daily Record' }}
+          options={{
+            title: 'Daily Record',
+          }}
         />
         <Stack.Screen name="write" component={Write} />
         <Stack.Screen name="showMemo" component={ShowMemo} />
