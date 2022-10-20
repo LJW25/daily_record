@@ -1,9 +1,17 @@
-import React, { memo, useState } from 'react';
-import { Text, TextInput, View, Button, StyleSheet } from 'react-native';
+import React, { memo, useState, useEffect  } from 'react';
+import { Text, TextInput, View, Button, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import Geolocation from '@react-native-community/geolocation';
+import axios from 'axios';
 
 const Write = ({navigation}) => {
+
+    state = {
+      isLoading: true,
+      temp: "",
+      latitude: 0,
+      longitude: 0,
+    }
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
@@ -47,11 +55,50 @@ const Write = ({navigation}) => {
             alert(error);
         }
     }
+    
+
+    
+    getWeather = async (lat, lon) => {
+      console.log(lat, lon)
+      const APIkey = "5c75094647f377c1415af4bd0cc1d185";
+      const {data} = await axios.get(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${APIkey}`
+      );
+      console.log("======");
+      console.log(data.weather.main);
+      this.setState({
+        temp: data.main.temp,
+        isLoading: false
+      });
+    }
+
+
+    const getGeolocation = () => {
+      Geolocation.getCurrentPosition(
+        position => {
+          const latitude = JSON.stringify(position.coords.latitude);
+          const longitude = JSON.stringify(position.coords.longitude);
+          //getPlaceDetail(latitude, longitude);
+          
+          this.getWeather(latitude, longitude)
+          this.setState({
+            latitude: latitude,
+            longitude: longitude
+          })
+        },
+        error => {
+          console.log(error.code, error.message);
+        },
+        {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+      );
+    };
+
 
     const addMemo = () => {
         const id = Date.now().toString();
         console.log(id);
-        
+        getGeolocation()
+
         const newMemo = {
             id: id,
             title: title,
