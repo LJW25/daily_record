@@ -1,21 +1,22 @@
-import React, { memo, useState, useEffect  } from 'react';
-import { Text, TextInput, View, Button, StyleSheet, Alert } from 'react-native';
+import React, { memo, useState, useEffect } from 'react';
+import { Image, TextInput, View, Button, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Geolocation from '@react-native-community/geolocation';
+import Geolocation from 'react-native-geolocation-service';
+import {useIsFocused} from '@react-navigation/native';
 import axios from 'axios';
 
 const Write = ({navigation}) => {
+    const isFocused = useIsFocused();
 
-    state = {
-      isLoading: true,
-      temp: "",
-      latitude: 0,
-      longitude: 0,
-    }
+    const GoogleAPIkey = "AIzaSyDTIRO-xGiFTl_EuI_RYQIV9wXOE6PKWwQ";
+    const WeatherAPIkey = "5c75094647f377c1415af4bd0cc1d185";
+
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [tag, setTag] = useState('');
+    const [pos, setPos] = useState('');
+    const [wicon, setWicon] = useState('');
 
     //update memoList
     const addInMemoList = async(id) => {
@@ -41,6 +42,56 @@ const Write = ({navigation}) => {
         }
     }
 
+    const getWeather = async (lat, lon) => {
+      console.log(lat, lon)
+      const {data} = await axios.get(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WeatherAPIkey}`
+      );
+      console.log("= Weather =====");
+      //console.log(data)
+      console.log(data.weather[0].id);
+    }
+    
+    const getPlaceDetail = async(place_id) => {
+      const {data} = await axios.get(
+        `https://maps.googleapis.com/maps/api/place/details/json?fields=name,types,icon&place_id=${place_id}&key=${GoogleAPIkey}`
+      );
+      console.log("= place detail Api =====");
+      //console.log(data)
+      console.log(JSON.stringify(data));
+      setWicon(data.result.icon);
+
+    }
+
+    const reverseGeocoding = async (lat, lon) => {
+      console.log(lat, lon)
+      const {data} = await axios.get(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${GoogleAPIkey}`
+      );
+      console.log("= place Api =====");
+      //console.log(data)
+      console.log(data.results[0].place_id);
+      getPlaceDetail(data.results[0].place_id);
+    }
+
+    const getLocation = () => {
+      Geolocation.getCurrentPosition(
+        (position) => {
+            //console.log(position.coords);
+            setPos(position.coords);
+
+            getWeather(position.coords.latitude, position.coords.longitude);
+            reverseGeocoding(position.coords.latitude, position.coords.longitude);
+            console.log(pos);
+        },
+        (error) => {
+            // See error code charts below.
+            console.log(error.code, error.message);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+    }
+
     //save new Memo in loacal storage
     const saveMemo = async(id, memo)=>{
         try{
@@ -55,50 +106,11 @@ const Write = ({navigation}) => {
             alert(error);
         }
     }
-    
-
-    
-    getWeather = async (lat, lon) => {
-      console.log(lat, lon)
-      const APIkey = "5c75094647f377c1415af4bd0cc1d185";
-      const {data} = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${APIkey}`
-      );
-      console.log("======");
-      console.log(data.weather.main);
-      this.setState({
-        temp: data.main.temp,
-        isLoading: false
-      });
-    }
-
-
-    const getGeolocation = () => {
-      Geolocation.getCurrentPosition(
-        position => {
-          const latitude = JSON.stringify(position.coords.latitude);
-          const longitude = JSON.stringify(position.coords.longitude);
-          //getPlaceDetail(latitude, longitude);
-          
-          this.getWeather(latitude, longitude)
-          this.setState({
-            latitude: latitude,
-            longitude: longitude
-          })
-        },
-        error => {
-          console.log(error.code, error.message);
-        },
-        {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
-      );
-    };
-
 
     const addMemo = () => {
         const id = Date.now().toString();
         console.log(id);
-        getGeolocation()
-
+        
         const newMemo = {
             id: id,
             title: title,
@@ -116,15 +128,28 @@ const Write = ({navigation}) => {
         saveMemo(id, newMemo);
     }
 
+    
+    useEffect(() => {
+      getLocation();
+  }, [isFocused]);
+
+    
     return (
       <View style={
           {padding: 10}}>
+        
         <TextInput
           style={styles.inputContainer}
           placeholder="Title"
           onChangeText={title => setTitle(title)}
           defaultValue={title}
         />
+        <View>
+          <Image source={{uri:"https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/school-71.png"}} />
+        
+          <Image source={{uri:wicon => setWicon(wicon)}}
+          defaultSource={{uri:"https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/school-71.png"}} />
+        </View>
         <TextInput
           style={styles.contentsContainer}
           placeholder="Contents"
@@ -184,5 +209,9 @@ const styles = StyleSheet.create({
     button: {
       padding : 20,
       marginTop: 30,
+    },
+    image: {
+      width: 60,
+      height: 60,
     },
   });
