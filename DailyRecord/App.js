@@ -5,8 +5,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 
 import Main from './src/Main.js';
-import Write from './src/write.js';
-import ShowMemo from './src/showMemo.js';
+import Write from './src/Write.js';
+import ShowMemo from './src/ShowMemo.js';
 
 
 const Stack = createStackNavigator();

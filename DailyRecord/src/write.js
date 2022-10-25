@@ -1,22 +1,16 @@
-import React, { memo, useState, useEffect } from 'react';
-import { Image, TextInput, View, Button, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Image, Text, TextInput, View, Button, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Geolocation from 'react-native-geolocation-service';
 import {useIsFocused} from '@react-navigation/native';
-import axios from 'axios';
+import { weImagePath } from './image/weather/weImgPath';
 
-const Write = ({navigation}) => {
+const Write = ({navigation, route}) => {
+    const weather = route.params.weather
     const isFocused = useIsFocused();
-
-    const GoogleAPIkey = "AIzaSyDTIRO-xGiFTl_EuI_RYQIV9wXOE6PKWwQ";
-    const WeatherAPIkey = "5c75094647f377c1415af4bd0cc1d185";
-
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [tag, setTag] = useState('');
-    const [pos, setPos] = useState('');
-    const [wicon, setWicon] = useState('');
 
     //update memoList
     const addInMemoList = async(id) => {
@@ -42,63 +36,13 @@ const Write = ({navigation}) => {
         }
     }
 
-    const getWeather = async (lat, lon) => {
-      console.log(lat, lon)
-      const {data} = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WeatherAPIkey}`
-      );
-      console.log("= Weather =====");
-      //console.log(data)
-      console.log(data.weather[0].id);
-    }
     
-    const getPlaceDetail = async(place_id) => {
-      const {data} = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/details/json?fields=name,types,icon&place_id=${place_id}&key=${GoogleAPIkey}`
-      );
-      console.log("= place detail Api =====");
-      //console.log(data)
-      console.log(JSON.stringify(data));
-      setWicon(data.result.icon);
-
-    }
-
-    const reverseGeocoding = async (lat, lon) => {
-      console.log(lat, lon)
-      const {data} = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${GoogleAPIkey}`
-      );
-      console.log("= place Api =====");
-      //console.log(data)
-      console.log(data.results[0].place_id);
-      getPlaceDetail(data.results[0].place_id);
-    }
-
-    const getLocation = () => {
-      Geolocation.getCurrentPosition(
-        (position) => {
-            //console.log(position.coords);
-            setPos(position.coords);
-
-            getWeather(position.coords.latitude, position.coords.longitude);
-            reverseGeocoding(position.coords.latitude, position.coords.longitude);
-            console.log(pos);
-        },
-        (error) => {
-            // See error code charts below.
-            console.log(error.code, error.message);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
-    }
-
     //save new Memo in loacal storage
     const saveMemo = async(id, memo)=>{
         try{
             await AsyncStorage.setItem(id, JSON.stringify(memo));
             addInMemoList(id);
             console.log(`Memo:${id} succefully saved!`);
-            
             navigation.navigate('main')
         }
         catch(error){
@@ -119,84 +63,149 @@ const Write = ({navigation}) => {
             date: Date.now(),
             category: 'default',
             place:{
-                place_id: '',
-                place_type: '',
+                place_name: route.params.place.name,
+                place_icon: route.params.place.icon,
             },
-            weather_type:'',
+            weather_type: route.params.weather,
         }
         
         saveMemo(id, newMemo);
     }
 
-    
-    useEffect(() => {
-      getLocation();
-  }, [isFocused]);
-
+    const setWeatherText = (w) => {
+      switch(w){
+        case "Clear":
+          return "맑음"
+        case "Thunderstorm":
+          return "천둥"
+        case "Drizzle":
+          return "이슬비"
+        case "Snow":
+          return "눈"
+        case "Atmosphere":
+          return "안개"
+        default:
+          return "흐림"
+      }
+    }
     
     return (
-      <View style={
-          {padding: 10}}>
-        
-        <TextInput
-          style={styles.inputContainer}
-          placeholder="Title"
-          onChangeText={title => setTitle(title)}
-          defaultValue={title}
-        />
-        <View>
-          <Image source={{uri:"https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/school-71.png"}} />
-        
-          <Image source={{uri:wicon => setWicon(wicon)}}
-          defaultSource={{uri:"https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/school-71.png"}} />
+      <View>
+        <View style={styles.envContainer}>
+          <View style={styles.weatherContainer}>
+            <Image 
+            source={weImagePath[weather]}
+            style={styles.weatherImage} />
+            <Text style={styles.weatherText}>{setWeatherText(route.params.weather)}</Text>
+          </View>
+          <View style={styles.placeContainer}>
+            <Image 
+            source={{uri : route.params.place.icon}}
+            style={styles.placeImage} />
+            <Text style={styles.placeText}>{route.params.place.name}</Text>
+          </View>
         </View>
-        <TextInput
-          style={styles.contentsContainer}
-          placeholder="Contents"
-          multiline
-          onChangeText={content => setContent(content)}
-          defaultValue={content}
-        />
-        <TextInput
-          style={styles.inputContainer}
-          placeholder="Tag"
-          onChangeText={tag => setTag(tag)}
-          defaultValue={tag}
-        />
+        <View style={styles.contentContainer}>
+          <TextInput
+            style={styles.inputContainer}
+            placeholder="Title"
+            onChangeText={title => setTitle(title)}
+            defaultValue={title}
+          />
+          <TextInput
+            style={styles.contentsContainer}
+            placeholder="Contents"
+            multiline
+            onChangeText={content => setContent(content)}
+            defaultValue={content}
+          />
+          <TextInput
+            style={styles.tagContainer}
+            placeholder="Tag"
+            onChangeText={tag => setTag(tag)}
+            defaultValue={tag}
+          />
+          
+        </View>
         <Button
-            title="Save" 
-            onPress={() => {
-                addMemo();
-            }}
-            style={styles.button}
-            />
-
+              title="Save" 
+              onPress={() => {
+                  addMemo();
+              }}
+              style={styles.button}
+              />
       </View>
-
+        
   );
 }
 
 export default Write;
 
 const styles = StyleSheet.create({
-    container: {
+    
+    envContainer: {
+      flexDirection: 'row',
+      padding: 5,
+      backgroundColor: 'lightgrey',
+      borderBottomColor: 'lightgrey',
+      borderBottomWidth: 1,
+    },
+    weatherContainer: {
       flex: 1,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      fontWeight: 'bold',
+    },
+    weatherText: {
+      fontWeight: 'bold',
+    },
+    placeContainer: {
+      flex: 3,
+      justifyContent: "center",
+      alignItems: "center",
+      flexDirection: 'row',
+    },
+    placeText: {
+      flexWrap: 'wrap',
+      width: '70%',
+      numberOfLines: 3,
+      fontWeight: 'bold',
+    },
+    weatherImage: {
+      width: 80,
+      height: 80,
+    },
+    placeImage: {
+      margin:10,
+      width: 70,
+      height: 70,
+    },
+
+    contentContainer: {
+      padding:10,
     },
     inputContainer: {
-      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      height: 40,
+      fontSize: 17,
+      fontWeight: 'bold',
+    },
+    contentsContainer: {
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      height: 250,
+      multiline: 'true',
+      borderTopColor: 'black',
+      borderTopWidth: 1,
+      borderBottomColor: 'black',
+      borderBottomWidth: 1,
+    },
+    tagContainer: {
       justifyContent: 'space-between',
       alignItems: 'center',
       height: 40,
     },
-    contentsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        height: 300,
-      },
+
     input: {
       flex: 1,
       padding: 20,
@@ -206,12 +215,9 @@ const styles = StyleSheet.create({
       marginLeft: 40,
       marginRight: 40,
     },
+
     button: {
-      padding : 20,
+      padding: 20,
       marginTop: 30,
-    },
-    image: {
-      width: 60,
-      height: 60,
     },
   });
