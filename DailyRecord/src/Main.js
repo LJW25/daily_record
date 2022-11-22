@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView,
     StatusBar,
     useColorScheme,
@@ -13,13 +13,13 @@ import { FlatList } from 'react-native-gesture-handler';
 import {useIsFocused} from '@react-navigation/native'
 import Geolocation from 'react-native-geolocation-service';
 import axios from 'axios';
+import { GoogleApiKey, WeathermapApiKey } from './APIkey';
+import {Picker} from '@react-native-picker/picker';
+import parseErrorStack from 'react-native/Libraries/Core/Devtools/parseErrorStack';
 
 
 
 const Main = ({navigation}) => {
-  
-    const GoogleApiKey = "AIzaSyDTIRO-xGiFTl_EuI_RYQIV9wXOE6PKWwQ";
-    const WeathhermapApiKey = "5c75094647f377c1415af4bd0cc1d185";
     
     const isFocused = useIsFocused();
     const isDarkMode = useColorScheme() === 'dark';
@@ -32,7 +32,7 @@ const Main = ({navigation}) => {
     
         return (
           <TouchableOpacity style={styles.flatContainer} onPress={()=>
-            navigation.navigate('showMemo', {_memo_:memo})
+            navigation.navigate('ReadMemo', {_memo_:memo})
           }>
             <Text
               style={[
@@ -42,6 +42,7 @@ const Main = ({navigation}) => {
               {memo.title}
             </Text>
             <Text
+              numberOfLines={2}
               style={[
                 styles.sectionDescription,
                 {color: isDarkMode ? Colors.light : Colors.dark,},
@@ -53,43 +54,53 @@ const Main = ({navigation}) => {
       };
     
 
-    let [curMemoList, setCurMemoList] = useState([]);
     let [curMemos, setCurMemos] = useState([]);
+    const [category, setCategory] = useState('');
 
     const getMemoList = async(category) => {
         const memoList = await AsyncStorage.getItem('MemoList');
         let tempList = [];
         let tempMemoList = [];
 
-        if(memoList == null){
-            tempList = [];
-        }
-        else{
-            tempList = JSON.parse(memoList)[category];
+        if(memoList != null){
+          tempList = JSON.parse(memoList)[category];
+          if(tempList == null)
+            return tempMemoList;
+          else if(tempList.length == 1){
+            const memo = await AsyncStorage.getItem(tempList[0]);
+            tempMemoList.push(JSON.parse(memo));
+          }
+          else{
             tempList.forEach(async(curID) => {
-                const memo = await AsyncStorage.getItem(curID);
-                tempMemoList.unshift(JSON.parse(memo));
+              const memo = await AsyncStorage.getItem(curID);
+              tempMemoList.unshift(JSON.parse(memo));
             });
+          }
+
         }
         return tempMemoList;
     }
 
+    async function getMemo(category) {
+      const _curMemo = await getMemoList(category);
+      setCurMemos(_curMemo);
+  }
+
     useEffect(() => {
-        async function getMemo() {
-            const _curMemo = await getMemoList("default");
-            setCurMemos(_curMemo);
-        }
-        getMemo();
+        getMemo("default");
     }, [isFocused]);
 
     const renderItem = ({item}) => {
-        //console.log(item.id);
-        
+      try{
+        console.log(item.id);
         return (
             <Section memo={item}>
               {item.content}
             </Section>
         );
+      } catch{
+      }
+        
     }
     //============================= API
     const setWeather = (weather_id) => {
@@ -116,7 +127,7 @@ const Main = ({navigation}) => {
     const getApiData = async(lat, lon, place_id) => {
       console.log(lat, lon, place_id)
       var {data} = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WeathhermapApiKey}`
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WeathermapApiKey}`
         );
       const weather_id = data.weather[0].id;
       const weather = setWeather(weather_id);
@@ -134,12 +145,12 @@ const Main = ({navigation}) => {
       console.log(JSON.stringify(data));
 
       const place = {
-        "name": route.params.weather,
+        "name": data.result.name,
         //"type": data.result.types[0],
         "icon": data.result.icon,
       }
 
-      navigation.navigate('write', {weather: weather, place: place});
+      navigation.navigate('Write', {weather: weather, place: place});
     }
 
     const reverseGeocoding = async (lat, lon) => {
@@ -182,25 +193,33 @@ const Main = ({navigation}) => {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundStyle.backgroundColor}
         />
-        <Button
-            title="Add New Memo" 
+        <View style={styles.btmContainer}>
+          <Picker
+            style={styles.pickerContainer}
+            selectedValue={category}
+            onValueChange={category =>{
+              setCategory(category);
+              getMemo(category);
+            }}>
+            <Picker.Item label="default" value="default" />
+            <Picker.Item label="diary" value="diary" />
+            <Picker.Item label="memo" value="memo" />
+          </Picker>
+          <Button
+            title="새 메모" 
             onPress={() =>
               getLocation()
             }
             style={styles.button}
-        />
-        <View style={{padding: 10}}>
-          <Text>Memo List</Text>
+          />
         </View>
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            padding: 10
-          }}>
+        <View style={{padding: 10}}>
           <FlatList
             data = {curMemos}
             renderItem={renderItem}
-            keyExtractor={(item)=>item.id}
+            keyExtractor={(item)=>{
+              if(item!=null) return item.id
+            }}
             ListEmptyComponent={() => (
                 <View>
                   <Text> No memo</Text>
@@ -242,5 +261,20 @@ const styles = StyleSheet.create({
         marginTop: 8,
         fontSize: 18,
         fontWeight: '400',
+      },
+      
+      btmContainer: {
+        flexDirection: 'row',
+        textAlign: 'center',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingRight: 10,
+      },
+      pickerContainer: {
+        flex: 1,
+      },
+      button: {
+        textAlign: 'center',
+        paddingTop: 20,
       },
   });

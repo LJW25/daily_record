@@ -1,58 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Image, Text, TextInput, View, Button, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useIsFocused} from '@react-navigation/native';
 import { weImagePath } from './image/weather/weImgPath';
-import {Picker} from '@react-native-picker/picker';
 import { setWeatherText } from './utils';
 
-const Write = ({navigation, route}) => {
-    const weather = route.params.weather
-    const isFocused = useIsFocused();
+const EditMemo = ({navigation, route}) => {
+    
+    const Memo = route.params._memo_;
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [tag, setTag] = useState('');
-    const [category, setCategory] = useState('');
 
-    //update memoList
-    const addInMemoList = async(id) => {
-        try{
-            let memoList = JSON.parse(await AsyncStorage.getItem('MemoList'));
-            console.log(JSON.stringify(memoList));
 
-            if(memoList == null){
-                memoList = {
-                  'default': [],
-                  'diary': [],
-                  'memo': [],
-                };
-            }
-
-            console.log(category);
-            
-            memoList['default'].push(id);
-            memoList[category].push(id);
-            alert('메모가 저장되었습니다!');
-            
-            console.log(JSON.stringify(memoList));
-
-            await AsyncStorage.setItem('MemoList', JSON.stringify(memoList));
-            console.log('updated Memo List!');
-        }
-        catch(error){
-            console.log(error);
-            alert(error);
-        }
-    }
-
-    
     //save new Memo in loacal storage
     const saveMemo = async(id, memo)=>{
         try{
             await AsyncStorage.setItem(id, JSON.stringify(memo));
-            addInMemoList(id);
-            console.log(`Memo:${id} succefully saved!`);
+            alert(`메모가 수정되었습니다!`);
             navigation.navigate('main')
         }
         catch(error){
@@ -62,42 +27,45 @@ const Write = ({navigation, route}) => {
     }
 
     const addMemo = () => {
-        const id = Date.now().toString();
-        console.log(id);
         
         const newMemo = {
-            id: id,
+            id: Memo.id,
             title: title,
             content: content,
             tag: tag,
-            date: Date.now(),
-            category: category,
+            date: Memo.date,
+            category: Memo.category,
             place:{
-                name: route.params.place.name,
-                icon: route.params.place.icon,
+                name: Memo.place.name,
+                icon: Memo.place.icon,
             },
-            weather_type: route.params.weather,
+            weather_type: Memo.weather_type,
         }
         
-        saveMemo(id, newMemo);
+        saveMemo(Memo.id, newMemo);
     }
 
-    
+    useEffect(() => {
+      setTitle(Memo.title);
+      setContent(Memo.content);
+      setTag(Memo.tag);
+    }, []);
+
     
     return (
       <View>
         <View style={styles.envContainer}>
           <View style={styles.weatherContainer}>
             <Image 
-            source={weImagePath[weather]}
+            source={weImagePath[Memo.weather_type]}
             style={styles.weatherImage} />
-            <Text style={styles.weatherText}>{setWeatherText(route.params.weather)}</Text>
+            <Text style={styles.weatherText}>{setWeatherText(Memo.weather_type)}</Text>
           </View>
           <View style={styles.placeContainer}>
             <Image 
-            source={{uri : route.params.place.icon}}
+            source={{uri : Memo.place.icon}}
             style={styles.placeImage} />
-            <Text style={styles.placeText}>{route.params.place.name}</Text>
+            <Text style={styles.placeText}>{Memo.place.name}</Text>
           </View>
         </View>
         <View style={styles.contentContainer}>
@@ -105,48 +73,36 @@ const Write = ({navigation, route}) => {
             style={styles.inputContainer}
             placeholder="제목"
             onChangeText={title => setTitle(title)}
-            defaultValue={title}
+            defaultValue={Memo.title}
           />
           <TextInput
             style={styles.contentsContainer}
-            placeholder="내용을 작성해 주세요"
+            placeholder="내용을 입력해 주세요"
             multiline
             onChangeText={content => setContent(content)}
-            defaultValue={content}
+            defaultValue={Memo.content}
           />
           <TextInput
             style={styles.tagContainer}
             placeholder="태그"
             onChangeText={tag => setTag(tag)}
-            defaultValue={tag}
+            defaultValue={Memo.tag}
           />
           
         </View>
-       <View style={styles.btmContainer}>
-        <Picker
-          style={styles.pickerContainer}
-          selectedValue={category}
-          onValueChange={category =>setCategory(category)}>
-          <Picker.Item label="default" value="default" />
-          <Picker.Item label="diary" value="diary" />
-          <Picker.Item label="memo" value="memo" />
-        </Picker>
-
         <Button
-          title="저장" 
-          onPress={() => {
-            addMemo();
-          }}
-          style={styles.button}
-          />
-       </View>
+              title="저장" 
+              onPress={() => {
+                  addMemo();
+              }}
+              style={styles.button}
+              />
       </View>
         
   );
 }
 
-export default Write;
-const backColor = 'Orange';
+export default EditMemo;
 
 const styles = StyleSheet.create({
     
@@ -223,17 +179,9 @@ const styles = StyleSheet.create({
       marginLeft: 40,
       marginRight: 40,
     },
-    btmContainer: {
-      flexDirection: 'row',
-      textAlign: 'center',
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingRight: 10,
-    },
-    pickerContainer: {
-      flex: 1,
-    },
+
     button: {
-      flex: 1,
+      padding: 20,
+      marginTop: 30,
     },
   });

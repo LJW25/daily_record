@@ -6,7 +6,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 import Main from './src/Main.js';
 import Write from './src/Write.js';
-import ShowMemo from './src/ShowMemo.js';
+import ReadMemo from './src/ReadMemo.js';
+import EditMemo from './src/EditMemo.js';
 
 
 const Stack = createStackNavigator();
@@ -22,8 +23,9 @@ const App = () => {
             title: 'Daily Record',
           }}
         />
-        <Stack.Screen name="write" component={Write} />
-        <Stack.Screen name="showMemo" component={ShowMemo} />
+        <Stack.Screen name="Write" component={Write} />
+        <Stack.Screen name="ReadMemo" component={ReadMemo} />
+        <Stack.Screen name="EditMemo" component={EditMemo} />
       </Stack.Navigator>
     </NavigationContainer>
   );
